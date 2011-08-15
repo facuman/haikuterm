@@ -22,15 +22,6 @@ import sys
 import emuvt100
 import session
 
-def PrintStringAsAscii(s):
-    import string
-    for ch in s:
-        if ch in string.printable:
-            print ch,
-        else:
-            print ord(ch),
-
-
 # NORMAL, LIGHT/BRIGHT
 COLOR_TABLE = [#black
                (QtGui.QColor(0, 0, 0), QtGui.QColor(0, 0, 0)),
@@ -50,9 +41,9 @@ COLOR_TABLE = [#black
                (QtGui.QColor(229, 229, 229), QtGui.QColor(205, 0, 0))]
 
 
-class haikutermWidget(QtGui.QFrame):
+class HaikutermWidget(QtGui.QFrame):
     def __init__(self, parent=None, app=None):
-        super(haikutermWidget, self).__init__(parent)
+        super(HaikutermWidget, self).__init__(parent)
         
         self.app = app
 
@@ -107,7 +98,7 @@ class haikutermWidget(QtGui.QFrame):
 
     def activateWindow(self):
         self.redraw_screen = False
-        super(haikutermWidget, self).activateWindow()
+        super(HaikutermWidget, self).activateWindow()
 
     def update_blinking(self, activate=False):
         if not activate and self.blinking:
@@ -327,7 +318,7 @@ class haikutermWidget(QtGui.QFrame):
         self._recalculate_grid_size()
         self.redraw_screen = True
         self.screen = {}
-        super(haikutermWidget, self).resizeEvent(e)
+        super(HaikutermWidget, self).resizeEvent(e)
 
     def get_fixed_size(self):
         return self._fixed_size
@@ -380,7 +371,7 @@ class haikutermWidget(QtGui.QFrame):
 if __name__ == '__main__':
     my_app = QtGui.QApplication(sys.argv)
 
-    w = haikutermWidget(app=my_app)
+    w = HaikutermWidget(app=my_app)
     w.run_shell("/bin/bash")
 
     w.show()
