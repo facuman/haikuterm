@@ -1,0 +1,7 @@
+This is the first release of haikuterm. It's a terminal widget programmed
+using the Qt python bindings (PyQt4 for now). Please keep in mind that it is in
+ a very early stage of development.
+
+Feedback and/or comments to facudeguzman@gmail.com
+
+Thx!
