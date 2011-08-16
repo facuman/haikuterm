@@ -206,14 +206,11 @@ class V102Terminal:
         self.isLineDirty = []
         
         for i in range(rows):
-            #line = array('u')
             line = []
-            #rendition = array('L')
             rendition = []
             
             for j in range(cols):
                 line.append(u' ')
-                #rendition.append(0)
                 rendition.append(None)
 
             self.screen.append(line)
@@ -290,14 +287,11 @@ class V102Terminal:
         elif rows > self.rows:
             # add blank rows at bottom
             for i in range(rows - self.rows):
-                #line = array('u')
                 line = []
-                #rendition = array('L')
                 rendition = []
 
                 for j in range(self.cols):
                     line.append(u' ')
-                    #rendition.append(0)
                     rendition.append(None)
                 
                 self.screen.append(line)
@@ -317,7 +311,6 @@ class V102Terminal:
             for i in range(self.rows):
                 for j in range(cols - self.cols):
                     self.screen[i].append(u' ')
-                    #self.scrRendition[i].append(0)
                     self.scrRendition[i].append(None)
 
         self.cols = cols

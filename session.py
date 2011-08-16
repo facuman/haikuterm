@@ -38,11 +38,9 @@ class Session(QtCore.QThread):
         self.cmd_path = cmd_path
         self.stream = ptty.spawn(cmd_path)
 
-        # Set file non blocking
-        #print fcntl.fcntl(self.stream.fileno(), fcntl.F_SETFD, os.O_NDELAY)
+        # Set child descriptor non blocking
         fl = fcntl.fcntl(self.stream.fileno(), fcntl.F_GETFL)
         fcntl.fcntl(self.stream.fileno(), fcntl.F_SETFL, fl | os.O_NONBLOCK )
-        #os.O_RDWR
 
         self.linebuffer = u""
         self.charbuffer = u""
@@ -53,16 +51,18 @@ class Session(QtCore.QThread):
                                                QtCore.QSocketNotifier.Read)
         self.utf8_child = codecs.getreader('utf8')(self.stream)
         self._parent.app.connect(self.notifier,
-                                 QtCore.SIGNAL('activated(int)'), self.read)
+                                 QtCore.SIGNAL('activated(int)'),
+                                 self.get_input)
 
-    def read(self, fd):
+    def get_input(self, fd):
         self._parent.app.disconnect(self.notifier,
-                                    QtCore.SIGNAL('activated(int)'), self.read)
+                                    QtCore.SIGNAL('activated(int)'),
+                                    self.get_input)
         output = u""
         broken_pipe = False
 
         try:
-            output = self.read_utf8(self.buffer_size)
+            output = self.read(self.buffer_size)
         except OSError:
             broken_pipe = True
 
@@ -81,12 +81,11 @@ class Session(QtCore.QThread):
             self.emit(QtCore.SIGNAL("receive"), output)
             self._parent.app.connect(self.notifier,
                                      QtCore.SIGNAL('activated(int)'),
-                                     self.read)
+                                     self.get_input)
         else:
             print "Broken Pipe"
 
-    def read_utf8(self, size=-1, chars=-1, firstline=False):
-
+    def read(self, size=-1, chars=-1, firstline=False):
         """ Decodes data from the stream self.stream and returns the
             resulting object.
 
@@ -188,6 +187,5 @@ class Session(QtCore.QThread):
         self.emit(QtCore.SIGNAL("done"))
 
     def resize(self, rows, cols):
-        #print "new size: %s, %s" % (rows, cols)
         self.stream.setwinsize(rows, cols)
   

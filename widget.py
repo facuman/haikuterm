@@ -220,13 +220,14 @@ class HaikutermWidget(QtGui.QFrame):
         self.changes_per_update(painter, update_char_count)
 
     def changes_per_update(self, painter, update_char_count):
-        left = self.contentsRect().left()
-        top = self.contentsRect().top()
+        field_width = 80
+        left = self.contentsRect().right() - field_width
+        top = self.contentsRect().bottom() - self.cell_height - 5
         update_rect = QtCore.QRect(QtCore.QPoint(left, top),
-                                   QtCore.QSize(50, self.cell_height))
+                                   QtCore.QSize(field_width, self.cell_height))
         painter.fillRect(update_rect, self.background_color)
         painter.setPen(QtCore.Qt.white)
-        painter.drawText(QtCore.QPoint(left, self.cell_height),
+        painter.drawText(QtCore.QPoint(left, top + self.cell_height),
                          "Upd: %s" % update_char_count)
 
     def update_lines(self):
