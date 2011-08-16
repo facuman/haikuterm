@@ -31,14 +31,11 @@ Emulator for VT100 terminal programs.
 
 This module provides terminal emulation for VT100 terminal programs. It handles
 V100 special characters and most important escape sequences. It also handles
-graphics rendition which specifies text style(i.e. bold, italics), foreground color
-and background color. The handled escape sequences are CUU, CUD, CUF, CUB, CHA,
-CUP, ED, EL, VPA and SGR.
+graphics rendition which specifies text style(i.e. bold, italics), foreground
+color and background color. The handled escape sequences are CUU, CUD, CUF,
+CUB, CHA, CUP, ED, EL, VPA and SGR.
 """
-import re
-
 import sys
-import widget
 
 class Rendition(object):
     def __init__(self):
@@ -201,10 +198,8 @@ class V102Terminal:
         # next 4 bits for background
         self.scrRendition = []
 
-        self.scrUtf8 = {}
 
         # current rendition
-        #self.curRendition = 0L
         self.curRendition = Rendition()
         
         # list of dirty lines since last call to GetDirtyLines
@@ -240,18 +235,18 @@ class V102Terminal:
     def GetRawScreen(self):
         """
         Returns the screen as a list of strings. The list will have rows no. of
-        strings and each string will have columns no. of characters. Blank space
-        used represents no character.
+        strings and each string will have columns no. of characters. Blank
+        space used represents no character.
         """
         return self.screen
 
     def GetRawScreenRendition(self):
         """
-        Returns the screen as a list of current of long. The list will have rows
-        no. of current and each current will have columns no. of longs. The first
-        8 bits of long represents rendition style like bold, italics and etc.
-        The next 4 bits represents foreground color and next 4 bits for
-        background color.
+        Returns the screen as a list of current of long. The list will have
+        rows no. of current and each current will have columns no. of longs.
+        The first 8 bits of long represents rendition style like bold, italics
+        and etc. The next 4 bits represents foreground color and next 4 bits
+        for background color.
         """
         return self.scrRendition
 
@@ -381,46 +376,13 @@ class V102Terminal:
                 
             for j in range(start, end + 1):
                 self.screen[i][j] = u' '
-                #self.scrRendition[i][j] = 0
                 self.scrRendition[i][j] = None
                 
             if end + 1 > start:
                 self.isLineDirty[i] = True 
 
     def GetChar(self, row, col):
-        """
-        Returns the character at the location specified by row and col. The
-        row and col should be in the range 0..rows - 1 and 0..cols - 1."
-        """
-        if row < 0 or row >= self.rows:
-            return None
-        
-        if col < 0 or col >= self.cols:
-            return None
-        
         return self.screen[row][col]
-
-    def GetUtf8Char(self, row, col):
-        return self.screen[row][col]
-
-    def GetRendition(self, row, col):
-        """
-        Returns the screen rendition at the location specified by row and col.
-        The returned value is a long, the first 8 bits specifies the rendition
-        style and next 4 bits for foreground and another 4 bits for background
-        color.
-        """
-        if row < 0 or row >= self.rows:
-            return None
-        
-        if col < 0 or col >= self.cols:
-            return None
-        
-        style = self.scrRendition[row][col] & 0x000000ff
-        fgcolor = (self.scrRendition[row][col] & 0x00000f00) >> 8
-        bgcolor = (self.scrRendition[row][col] & 0x0000f000) >> 12
-        
-        return style, fgcolor, bgcolor
 
     def GetRenditionAlternate(self, row, col):
         return self.scrRendition[row][col]
@@ -434,7 +396,7 @@ class V102Terminal:
         if lineno < 0 or lineno >= self.rows:
             return None
 
-        return "".join(self.screen[lineno])
+        return u"".join(self.screen[lineno])
 
     def GetLines(self):
         """
@@ -452,13 +414,13 @@ class V102Terminal:
         Returns the entire terminal screen as a single big string. Each row
         is seperated by \\n and blank space represents empty character.
         """
-        text = ""
+        text = u""
         
         for i in range(self.rows):
             text += self.screen[i].tostring()
-            text += '\n'
+            text += u'\n'
         
-        text = text.rstrip("\n") # removes leading new lines
+        text = text.rstrip('\n') # removes leading new lines
         
         return text
     
@@ -505,7 +467,7 @@ class V102Terminal:
         """
         self.callbacks[event] = func
 
-    def ProcessInputUtf8(self, text):
+    def ProcessInput(self, text):
         """
         Processes the given input text. It detects V100 escape sequences and
         handles it. Any partial unparsed escape sequences are stored internally
@@ -516,8 +478,6 @@ class V102Terminal:
         if text is None:
             return
 
-        #text = text.decode("utf-8")
-
         if self.unparsedInput is not None:
             text = self.unparsedInput + text
             self.unparsedInput = None
@@ -526,17 +486,17 @@ class V102Terminal:
 
         index = 0
         while index < textlen:
-            ch = text[index]
-            ascii = ord(ch)
+            char = text[index]
+            char_ordinal = ord(char)
 
             if self.ignoreChars:
                 index += 1
                 continue
 
-            if ascii in self.charHandlers.keys():
-                index = self.charHandlers[ascii](text, index)
+            if char_ordinal in self.charHandlers.keys():
+                index = self.charHandlers[char_ordinal](text, index)
             else:
-                self.__PushChar(u"%s" % ch)
+                self.__PushChar(char)
 
                 index += 1
 
@@ -564,12 +524,11 @@ class V102Terminal:
             
         line = self.screen.pop(0)
         for i in range(self.cols):
-            line[i] = ' '
+            line[i] = u' '
         self.screen.append(line)
         
         rendition = self.scrRendition.pop(0)
         for i in range(self.cols):
-            #rendition[i] = 0
             rendition[i] = None
         self.scrRendition.append(rendition)
            
@@ -615,21 +574,21 @@ class V102Terminal:
         textlen = len(text)
         interChars = None
         while index < textlen:
-            ch = text[index]
-            ascii = ord(ch)
+            char = text[index]
+            char_ordinal = ord(char)
             
-            if ascii >= 32 and ascii <= 63:
+            if char_ordinal >= 32 and char_ordinal <= 63:
                 # intermediate char (32 - 47)
                 # parameter chars (48 - 63)
                 if interChars is None:
-                    interChars = ch
+                    interChars = char
                 else:
-                    interChars += ch
-            elif ascii >= 64 and ascii <= 125:
+                    interChars += char
+            elif char_ordinal >= 64 and char_ordinal <= 125:
                 # final char
-                return index + 1, chr(ascii), interChars
+                return index + 1, chr(char_ordinal), interChars
             else:
-                print "Unexpected characters in escape sequence ", ch
+                print "Unexpected characters in escape sequence ", char
             
             index += 1
         

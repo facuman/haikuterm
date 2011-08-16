@@ -49,12 +49,15 @@ class Session(QtCore.QThread):
         self.bytebuffer = ""
 
         #self.stream.setecho(False)
-        self.notifier = QtCore.QSocketNotifier(self.stream.fileno(), QtCore.QSocketNotifier.Read)
+        self.notifier = QtCore.QSocketNotifier(self.stream.fileno(),
+                                               QtCore.QSocketNotifier.Read)
         self.utf8_child = codecs.getreader('utf8')(self.stream)
-        self._parent.app.connect(self.notifier, QtCore.SIGNAL('activated(int)'), self.read)
+        self._parent.app.connect(self.notifier,
+                                 QtCore.SIGNAL('activated(int)'), self.read)
 
     def read(self, fd):
-        self._parent.app.disconnect(self.notifier, QtCore.SIGNAL('activated(int)'), self.read)
+        self._parent.app.disconnect(self.notifier,
+                                    QtCore.SIGNAL('activated(int)'), self.read)
         output = u""
         broken_pipe = False
 
@@ -76,7 +79,9 @@ class Session(QtCore.QThread):
             #print "Output: %s" % output
 
             self.emit(QtCore.SIGNAL("receive"), output)
-            self._parent.app.connect(self.notifier, QtCore.SIGNAL('activated(int)'), self.read)
+            self._parent.app.connect(self.notifier,
+                                     QtCore.SIGNAL('activated(int)'),
+                                     self.read)
         else:
             print "Broken Pipe"
 
@@ -110,7 +115,7 @@ class Session(QtCore.QThread):
         """
         # If we have lines cached, first merge them back into characters
         if self.linebuffer:
-            self.charbuffer = "".join(self.linebuffer)
+            self.charbuffer = u"".join(self.linebuffer)
             self.linebuffer = None
 
         # read until we get the required number of characters (if available)
@@ -159,7 +164,7 @@ class Session(QtCore.QThread):
         if chars < 0:
             # Return everything we've got
             result = self.charbuffer
-            self.charbuffer = ""
+            self.charbuffer = u""
         else:
             # Return the first chars characters
             result = self.charbuffer[:chars]
@@ -174,16 +179,12 @@ class Session(QtCore.QThread):
             return self.decode(data[:exc.start])
 
     def write(self, text):
-        #print "Writing: %s" % text
         self.stream.write("%s" % str(text))
 
     def run(self):
-        #self.emit(QtCore.SIGNAL("receive"), QtCore.QString("Process Started"))
-
         while self.stream.isalive():
             time.sleep(1)
 
-        #self.emit(QtCore.SIGNAL("receive"), QtCore.QString("Process Finished"))
         self.emit(QtCore.SIGNAL("done"))
 
     def resize(self, rows, cols):

@@ -56,7 +56,6 @@ class HaikutermWidget(QtGui.QFrame):
 
         self.background_color = QtGui.QColor(0, 0, 0)
         self.foreground_color = QtGui.QColor(255, 255, 255)
-#        self.set_background(self.background_color)
 
         self.terminal = None
         self.set_terminal()
@@ -107,7 +106,7 @@ class HaikutermWidget(QtGui.QFrame):
             self.connect(self.blink_timer, QtCore.SIGNAL("timeout()"),
                          self.blink_bang)
 
-    def set_cursor_type(self, line=True, block=True):
+    def set_cursor_type(self, line=True, block=False):
         if block:
             self.cursor_type = 1
         else:
@@ -152,7 +151,7 @@ class HaikutermWidget(QtGui.QFrame):
 
     def print_test_screen(self):
         for line in self.terminal.screen:
-            current_line = "".join([char for char in line])
+            current_line = u"".join([char for char in line])
             print current_line
 
     def _get_rendition_font(self, rendition):
@@ -185,7 +184,7 @@ class HaikutermWidget(QtGui.QFrame):
             cursor_color = self.background_color
 
         if self.cursor_type:
-            painter.fillRect(rect, cursor_colorr)
+            painter.fillRect(rect, cursor_color)
         else:
             painter.setPen(cursor_color)
             painter.drawLine(QtCore.QPoint(x, y + 2),
@@ -206,7 +205,6 @@ class HaikutermWidget(QtGui.QFrame):
             if rendition:
                 curRendition = rendition
 
-            #rendition = self.terminal.GetRenditionAlternate(row, col)
             font = self._get_rendition_font(curRendition)
             fg_color = self._get_color_from_table(curRendition.fg_color)
             bg_color = self._get_color_from_table(curRendition.bg_color)
@@ -239,32 +237,32 @@ class HaikutermWidget(QtGui.QFrame):
                 self.screen[row] = {}
                 self.screenRend[row] = {}
                 for col in xrange(len(line)):
-                    utf8char = self.terminal.GetUtf8Char(row, col)
+                    char = self.terminal.GetChar(row, col)
                     rendition = self.terminal.GetRenditionAlternate(row, col)
 
                     self.screen[row].setdefault(col, {1:None})
-                    self.screen[row][col] = utf8char
+                    self.screen[row][col] = char
 
                     self.screenRend[row].setdefault(col, {1:None})
                     self.screenRend[row][col] = rendition
 
-                    self._changes.append((row, col, utf8char, rendition))
+                    self._changes.append((row, col, char, rendition))
             else:
                 for col in xrange(len(line)):
-                    utf8char = self.terminal.GetUtf8Char(row, col)
+                    char = self.terminal.GetChar(row, col)
                     rendition = self.terminal.GetRenditionAlternate(row, col)
 
-                    if u"ribadeo" in line and utf8char == u"-":
+                    if u"ribadeo" in line and char == u"-":
                         pass
 
-                    if (self.screen[row][col] != utf8char or
+                    if (self.screen[row][col] != char or
                         rendition is None or
                         self.screenRend[row][col] != rendition):
 
-                        self.screen[row][col] = utf8char
+                        self.screen[row][col] = char
                         self.screenRend[row][col] = rendition
 
-                        self._changes.append((row, col, utf8char, rendition))
+                        self._changes.append((row, col, char, rendition))
         self.update()
 
     def paintEvent(self, event):
@@ -288,7 +286,8 @@ class HaikutermWidget(QtGui.QFrame):
             fw = fm.width(i)
             if self.font_width < fw:
                 self.font_width = fw
-        if self.font_width > 200: # don't trust unrealistic value, fallback to QFontMetrics::maxWidth()
+        if self.font_width > 200: # don't trust unrealistic value, fallback to
+                                  # QFontMetrics::maxWidth()
             self.font_width = fm.maxWidth()
         if self.font_width < 1:
             self.font_width = 1
@@ -305,8 +304,10 @@ class HaikutermWidget(QtGui.QFrame):
         else:
             self.cols = self.COLS
             self.rows = self.ROWS
-            self.cell_width =  self.contentsRect().width() / self.COLS + self.col_spacing
-            self.cell_height =  self.contentsRect().height() / self.ROWS + self.row_spacing
+            self.cell_width =  (self.contentsRect().width() / self.COLS +
+                                self.col_spacing)
+            self.cell_height =  (self.contentsRect().height() / self.ROWS +
+                                 self.row_spacing)
 
         if self.terminal:
             term_rows, term_cols = self.terminal.GetSize()
@@ -337,32 +338,28 @@ class HaikutermWidget(QtGui.QFrame):
         self.emit(QtCore.SIGNAL("resize"), self.rows, self.cols)
 
     def read_output(self, output):
-        self.terminal.ProcessInputUtf8(output)
+        self.terminal.ProcessInput(output)
 
         self.update()
 
     def keyPressEvent(self, event):
-        ascii = event.key()
-        #print "ASCII =", ascii
+        char_ordinal = event.key()
 
         keystrokes = None
 
-        #if ascii < 256:
-        #     keystrokes = chr(ascii)
-        if ascii == QtCore.Qt.Key_Enter:
-            keystrokes = "\r"
-        elif ascii == QtCore.Qt.Key_Tab:
-            keystrokes = "\t"
-        elif ascii == QtCore.Qt.Key_Up:
-            keystrokes = "\033[A"
-        elif ascii == QtCore.Qt.Key_Down:
-            keystrokes = "\033[B"
-        elif ascii == QtCore.Qt.Key_Right:
-            keystrokes = "\033[C"
-        elif ascii == QtCore.Qt.Key_Left:
-            keystrokes = "\033[D"
+        if char_ordinal == QtCore.Qt.Key_Enter:
+            keystrokes = u"\r"
+        elif char_ordinal == QtCore.Qt.Key_Tab:
+            keystrokes = u"\t"
+        elif char_ordinal == QtCore.Qt.Key_Up:
+            keystrokes = u"\033[A"
+        elif char_ordinal == QtCore.Qt.Key_Down:
+            keystrokes = u"\033[B"
+        elif char_ordinal == QtCore.Qt.Key_Right:
+            keystrokes = u"\033[C"
+        elif char_ordinal == QtCore.Qt.Key_Left:
+            keystrokes = u"\033[D"
 
-        #print "Sending:" + event.text()
         if keystrokes is not None:
             self.emit(QtCore.SIGNAL("write"), keystrokes)
         else:
