@@ -183,8 +183,7 @@ class V102Terminal:
                                self.__ESCSEQ_ED:self.__OnEscSeqED,
                                self.__ESCSEQ_EL:self.__OnEscSeqEL,
                                self.__ESCSEQ_VPA:self.__OnEscSeqVPA,
-                               #self.__ESCSEQ_SGR:self.__OnEscSeqSGR,
-                               self.__ESCSEQ_SGR:self.__OnEscSeqSGR_Alternate,
+                               self.__ESCSEQ_SGR:self.__OnEscSeqSGR,
                               }
 
         # terminal screen, its a list of string in which each string always
@@ -377,7 +376,7 @@ class V102Terminal:
     def GetChar(self, row, col):
         return self.screen[row][col]
 
-    def GetRenditionAlternate(self, row, col):
+    def GetRendition(self, row, col):
         return self.scrRendition[row][col]
 
     def GetLine(self, lineno):
@@ -855,7 +854,7 @@ class V102Terminal:
         else:
             print "WARNING: VPA line no. out of boundary"
 
-    def __OnEscSeqSGR_Alternate(self, params):
+    def __OnEscSeqSGR(self, params):
         """
         Handler for escape sequence SGR
         """

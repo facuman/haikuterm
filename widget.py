@@ -83,6 +83,8 @@ class HaikutermWidget(QtGui.QFrame):
 
         self.redraw_screen = False
 
+        self.cursor_pos = [{"x":0, "y":0, "row":0, "col":0},
+                           {"x":0, "y":0, "row":0, "col":0}]
         self.cursor_row = 0
         self.cursor_col = 0
         self.cursor_color = COLOR_TABLE[7][0]
@@ -95,7 +97,7 @@ class HaikutermWidget(QtGui.QFrame):
         self.update_blinking(activate=True)
 
     def activateWindow(self):
-        self.redraw_screen = False
+        self.redraw_screen = True
         super(HaikutermWidget, self).activateWindow()
 
     def update_blinking(self, activate=False):
@@ -118,7 +120,7 @@ class HaikutermWidget(QtGui.QFrame):
     def set_terminal(self):
         self.terminal = emuvt100.V102Terminal(self.rows, self.cols)
         self.terminal.SetCallback(self.terminal.CALLBACK_SCROLL_UP_SCREEN,
-                                  self.update_lines)
+                                  self.scroll_up)
         self.terminal.SetCallback(self.terminal.CALLBACK_UPDATE_LINES,
                                   self.update_lines)
         self.terminal.SetCallback(self.terminal.CALLBACK_UPDATE_CURSOR_POS,
@@ -128,10 +130,14 @@ class HaikutermWidget(QtGui.QFrame):
         self.terminal.SetCallback(self.terminal.CALLBACK_UNHANDLED_ESC_SEQ,
                                   self.unhandled_esc_seq)
 
+    def scroll_up(self):
+        self.redraw_screen = True
+
     def update_cursor_position(self):
+        self.cursor_pos[0] = self.cursor_pos[1]
         row, col = self.terminal.GetCursorPos()
-        self.cursor_row = row
-        self.cursor_col = col
+        self.cursor_pos[1]["row"] = row
+        self.cursor_pos[1]["col"] = col
 
     def set_window_title(self, title):
         self.setWindowTitle(title)
@@ -172,8 +178,17 @@ class HaikutermWidget(QtGui.QFrame):
         left = self.contentsRect().left()
         top = self.contentsRect().top()
 
-        x = left + self.cursor_col * self.cell_width
-        y = top + self.cursor_row * self.cell_height
+        # redraw the pass cursor position
+        row = self.cursor_pos[0]["row"]
+        col  = self.cursor_pos[0]["col"]
+        rendition = self.terminal.GetRendition(row, col)
+
+        char = self.terminal.GetChar(row, col)
+        self.draw_char(painter, row, col, rendition, char)
+
+        # redraw the current cursor position
+        x = left + self.cursor_pos[1]["col"] * self.cell_width
+        y = top + self.cursor_pos[1]["row"] * self.cell_height
 
         rect = QtCore.QRect(QtCore.QPoint(x, y), QtCore.QSize(self.cell_width,
                                                              self.cell_height))
@@ -189,32 +204,42 @@ class HaikutermWidget(QtGui.QFrame):
             painter.drawLine(QtCore.QPoint(x, y + 2),
                              QtCore.QPoint(x, y + self.cell_height - 1))
 
-    def draw_screen(self, painter):
+    def draw_char(self, painter, row, col, rendition, char):
         left = self.contentsRect().left()
         top = self.contentsRect().top()
+
+        x = left + col * self.cell_width
+        y = top + row * self.cell_height
+
+        if rendition:
+            font = self._get_rendition_font(rendition)
+            fg_color = self._get_color_from_table(rendition.fg_color)
+            bg_color = self._get_color_from_table(rendition.bg_color)
+        else:
+            font = self.font()
+            fg_color = self.background_color
+            bg_color = self.background_color
+            
+        rect = QtCore.QRect(QtCore.QPoint(x, y),
+                            QtCore.QSize(self.cell_width,
+                                         self.cell_height))
+        painter.fillRect(rect, bg_color)
+        painter.setFont(font)
+        painter.setPen(fg_color)
+        painter.drawText(rect, QtCore.Qt.AlignCenter, char)
+
+    def draw_screen(self, painter):
         update_char_count = 0
         changes = []
         changes, self._changes = self._changes, changes
 
         curRendition = emuvt100.Rendition()
         for row, col, char, rendition in changes:
-            x = left + col * self.cell_width
-            y = top + row * self.cell_height
-
             if rendition:
                 curRendition = rendition
 
-            font = self._get_rendition_font(curRendition)
-            fg_color = self._get_color_from_table(curRendition.fg_color)
-            bg_color = self._get_color_from_table(curRendition.bg_color)
+            self.draw_char(painter, row, col, curRendition, char)
 
-            rect = QtCore.QRect(QtCore.QPoint(x, y),
-                                QtCore.QSize(self.cell_width,
-                                             self.cell_height))
-            painter.fillRect(rect, bg_color)
-            painter.setFont(font)
-            painter.setPen(fg_color)
-            painter.drawText(rect, QtCore.Qt.AlignCenter, char)
             update_char_count += 1
         self.changes_per_update(painter, update_char_count)
 
@@ -238,7 +263,7 @@ class HaikutermWidget(QtGui.QFrame):
                 self.screenRend[row] = {}
                 for col in xrange(len(line)):
                     char = self.terminal.GetChar(row, col)
-                    rendition = self.terminal.GetRenditionAlternate(row, col)
+                    rendition = self.terminal.GetRendition(row, col)
 
                     self.screen[row].setdefault(col, {1:None})
                     self.screen[row][col] = char
@@ -250,10 +275,7 @@ class HaikutermWidget(QtGui.QFrame):
             else:
                 for col in xrange(len(line)):
                     char = self.terminal.GetChar(row, col)
-                    rendition = self.terminal.GetRenditionAlternate(row, col)
-
-                    if u"ribadeo" in line and char == u"-":
-                        pass
+                    rendition = self.terminal.GetRendition(row, col)
 
                     if (self.screen[row][col] != char or
                         rendition is None or

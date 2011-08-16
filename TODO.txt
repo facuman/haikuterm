@@ -1,0 +1,2 @@
+- Make the widget scrollable.
+- Improve drawing performance.
