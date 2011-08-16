@@ -985,4 +985,3 @@ class V102Terminal:
 
                 else:
                     print "'%s' not supported" % irendition
-

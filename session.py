@@ -32,6 +32,7 @@ class Session(QtCore.QThread):
         self._parent = parent
         self.connect(parent, QtCore.SIGNAL("write"), self.write)
         self.connect(parent, QtCore.SIGNAL("resize"), self.resize)
+        self.connect(parent, QtCore.SIGNAL("close_pty"), self.close_pty)
 
         self.buffer_size = 16384
 
@@ -83,7 +84,8 @@ class Session(QtCore.QThread):
                                      QtCore.SIGNAL('activated(int)'),
                                      self.get_input)
         else:
-            print "Broken Pipe"
+            pass
+            #print "Broken Pipe"
 
     def read(self, size=-1, chars=-1, firstline=False):
         """ Decodes data from the stream self.stream and returns the
@@ -188,4 +190,7 @@ class Session(QtCore.QThread):
 
     def resize(self, rows, cols):
         self.stream.setwinsize(rows, cols)
+
+    def close_pty(self):
+        self.stream.terminate(True)
   

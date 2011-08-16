@@ -94,7 +94,6 @@ class HaikutermWidget(QtGui.QFrame):
         self.blink_timer.start(1000)
         self.update_blinking(activate=True)
 
-
     def activateWindow(self):
         self.redraw_screen = False
         super(HaikutermWidget, self).activateWindow()
@@ -333,8 +332,8 @@ class HaikutermWidget(QtGui.QFrame):
 
     def run_shell(self, path):
         self.shell = session.Session(self, path)
-        self.connect(self.shell, QtCore.SIGNAL("done"), self.close)
         self.connect(self.shell, QtCore.SIGNAL("receive"), self.read_output)
+        self.connect(self.shell, QtCore.SIGNAL("done"), self.done)
         self.shell.start()
         self.emit(QtCore.SIGNAL("resize"), self.rows, self.cols)
 
@@ -365,6 +364,14 @@ class HaikutermWidget(QtGui.QFrame):
             self.emit(QtCore.SIGNAL("write"), keystrokes)
         else:
             self.emit(QtCore.SIGNAL("write"), event.text())
+
+    def closeEvent(self, event):
+        if self.shell:
+            self.emit(QtCore.SIGNAL("close_pty"))
+        super(HaikutermWidget, self).closeEvent(event)
+
+    def done(self):
+        self.close()
 
 if __name__ == '__main__':
     my_app = QtGui.QApplication(sys.argv)
