@@ -96,6 +96,17 @@ class HaikutermWidget(QtGui.QFrame):
         self.blink_timer.start(1000)
         self.update_blinking(activate=True)
 
+        self.history_size = 100
+        self.scroll_area = QtGui.QScrollArea()
+        self.set_scroll()
+
+    def set_scroll(self):
+        self.scroll_area.setVerticalScrollBarPolicy(
+            QtCore.Qt.ScrollBarAlwaysOn)
+        self.scroll_area.setWidget(self)
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.show()
+
     def activateWindow(self):
         self.redraw_screen = True
         super(HaikutermWidget, self).activateWindow()
@@ -131,7 +142,8 @@ class HaikutermWidget(QtGui.QFrame):
                                   self.unhandled_esc_seq)
 
     def scroll_up(self):
-        self.redraw_screen = True
+        self.resize(self.width(), self.height() + self.cell_height)
+        self.scroll_area.scrollContentsBy(0, self.cell_height)
 
     def update_cursor_position(self):
         self.cursor_pos[0] = self.cursor_pos[1]
@@ -381,6 +393,10 @@ class HaikutermWidget(QtGui.QFrame):
             keystrokes = u"\033[C"
         elif char_ordinal == QtCore.Qt.Key_Left:
             keystrokes = u"\033[D"
+        elif char_ordinal == QtCore.Qt.Key_PageUp:
+            keystrokes = u"\033[1S"
+        elif char_ordinal == QtCore.Qt.Key_PageDown:
+            keystrokes = u"\033[1T"
 
         if keystrokes is not None:
             self.emit(QtCore.SIGNAL("write"), keystrokes)
@@ -393,16 +409,35 @@ class HaikutermWidget(QtGui.QFrame):
         super(HaikutermWidget, self).closeEvent(event)
 
     def done(self):
-        self.close()
+        self.scroll_area.close()
+        #self.close()
 
-if __name__ == '__main__':
+
+def profile():
+    from hotshot import Profile
+    prof = Profile('widget.prof')
+    prof.runcall(main)
+    prof.close()
+    import hotshot.stats
+    stats = hotshot.stats.load('widget.prof')
+    stats.strip_dirs()
+    stats.sort_stats('time', 'calls')
+    stats.print_stats(30)
+
+def main():
     my_app = QtGui.QApplication(sys.argv)
 
     w = HaikutermWidget(app=my_app)
     w.run_shell("/bin/bash")
 
     w.show()
-    sys.exit(my_app.exec_())
+    my_app.exec_()
+
+if __name__ == '__main__':
+    if "--profile" in sys.argv:
+        profile()
+    else:
+        main()
 
 
 

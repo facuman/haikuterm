@@ -1,2 +1,4 @@
 - Make the widget scrollable.
 - Improve drawing performance.
+- FIXME: Sometimes an update of the cursor position leaves a ghost in the
+previous one.
